@@ -1289,19 +1289,38 @@ static int DeobfuscatedExtract(BIS.PBO.PBO pbo, DeobfuscationResult result, stri
     // Build path map: RawFileName (preserved obfuscated path) → output name
     // Recovered entries get their recovered names; non-recovered entries get
     // their sanitized names so reference updaters can resolve all paths.
-    pathMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-    var recoveredIndices = new HashSet<int>(result.RecoveredNames.Keys);
-    foreach (var kvp in result.RecoveredNames)
+    //
+    // Output names must be unique. Obfuscated names often sanitize to the same
+    // path (for example "data/ui/.paa" or "data/base/_co.paa"), and without
+    // this step each entry overwrites the previous one on disk. Recovered
+    // names get their slots first, so they keep their exact names.
+    var finalNames = new Dictionary<int, string>();
+    var uniqueNames = new UniqueEntryNames();
+    for (int i = 0; i < pbo.Files.Count; i++)
     {
-        var orig = pbo.Files[kvp.Key].RawFileName.Replace('\\', '/');
-        pathMap[orig] = kvp.Value.Replace('\\', '/');
+        if (result.FilteredOut.Contains(i)) continue;
+        if (result.RecoveredNames.TryGetValue(i, out var recovered))
+            finalNames[i] = uniqueNames.Allocate(recovered.Replace('\\', '/'));
     }
     for (int i = 0; i < pbo.Files.Count; i++)
     {
         if (result.FilteredOut.Contains(i)) continue;
-        if (recoveredIndices.Contains(i)) continue;
+        if (!finalNames.ContainsKey(i))
+            finalNames[i] = uniqueNames.Allocate(pbo.Files[i].FileName.Replace('\\', '/'));
+    }
+
+    pathMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    foreach (var kvp in result.RecoveredNames)
+    {
+        var orig = pbo.Files[kvp.Key].RawFileName.Replace('\\', '/');
+        pathMap[orig] = finalNames.TryGetValue(kvp.Key, out var unique)
+            ? unique
+            : kvp.Value.Replace('\\', '/');
+    }
+    foreach (var (i, final) in finalNames)
+    {
+        if (result.RecoveredNames.ContainsKey(i)) continue;
         var orig = pbo.Files[i].RawFileName.Replace('\\', '/');
-        var final = pbo.Files[i].FileName.Replace('\\', '/');
         if (!pathMap.ContainsKey(orig))
             pathMap[orig] = final;
     }
@@ -1336,9 +1355,7 @@ static int DeobfuscatedExtract(BIS.PBO.PBO pbo, DeobfuscationResult result, stri
     {
         if (result.FilteredOut.Contains(i)) continue;
         var entry = pbo.Files[i];
-        string entryName = result.RecoveredNames.TryGetValue(i, out var recoveredName)
-            ? recoveredName.Replace('\\', '/').ToLowerInvariant()
-            : entry.FileName.Replace('\\', '/').ToLowerInvariant();
+        string entryName = finalNames[i].ToLowerInvariant();
 
         // Detect files that need format conversion for pack-ready output
         bool isConfigBin = entryName.Equals("config.bin", StringComparison.OrdinalIgnoreCase);
