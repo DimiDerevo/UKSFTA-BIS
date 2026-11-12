@@ -1,6 +1,7 @@
 <Project>
   <!-- Merge all dependency assemblies into the publish output for a standalone binary -->
-  <Target Name="CustomILRepackPublish" AfterTargets="Publish" Condition="$(Configuration.Contains('Release'))">
+  <!-- Not for single-file publish: the bundle already holds all assemblies, and BIS.CLI.dll is not in PublishDir. -->
+  <Target Name="CustomILRepackPublish" AfterTargets="Publish" Condition="$(Configuration.Contains('Release')) And '$(PublishSingleFile)' != 'true'">
     <ItemGroup>
       <MergeInput Include="$(PublishDir)$(TargetName)$(TargetExt)"/>
       <MergeInput Include="$(PublishDir)*.dll" Exclude="$(PublishDir)$(TargetName)$(TargetExt);$(PublishDir)Spectre.Console.Ansi.dll"/>

@@ -185,6 +185,47 @@ projects:
 
 ## CLI Tool
 
+### Install
+
+The installed `bis` binary is self-contained. It does not need .NET.
+The install scripts do not need administrator rights.
+
+**From a release archive** (no .NET SDK necessary):
+
+1. Download `bis-win-x64.zip` or `bis-linux-x64.tar.gz` from
+   [Releases](https://github.com/UKSFTA/UKSFTA-BIS/releases).
+2. Extract the archive.
+3. Run the install script from the extracted folder:
+
+```powershell
+# Windows: installs to %LOCALAPPDATA%\Programs\bis and adds it to the user PATH
+powershell -ExecutionPolicy Bypass -File install.ps1
+```
+
+```bash
+# Linux: installs to ~/.local/bin
+./install.sh
+```
+
+**From source** (needs the .NET 10 SDK): run the same script from the
+repository root. The script builds a self-contained binary for your
+platform, then installs it.
+
+Open a new terminal after the install, then run `bis --help`.
+Run the script again to update `bis`.
+
+| Option (Windows / Linux) | Effect |
+|---|---|
+| `-InstallDir <dir>` / `--dir <dir>` | Install to another folder |
+| `-NoPath` | Windows only: do not change the user PATH |
+| `-Uninstall` / `--uninstall` | Remove `bis` |
+
+To publish a release, push a `v*` tag. The
+[Release workflow](.github/workflows/release.yml) builds both archives and
+attaches them to the GitHub Release.
+
+### Usage
+
 The `bis` CLI provides all library functionality from the command line:
 
 ```bash

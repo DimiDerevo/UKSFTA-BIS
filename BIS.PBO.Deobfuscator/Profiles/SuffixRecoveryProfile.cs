@@ -440,7 +440,9 @@ namespace BIS.PBO.Deobfuscator.Profiles
                         foreach (var cls in candidates)
                         {
                             var strippedCls = ProfileUtils.StripColorSuffixes(cls);
-                            var reconstructed = $"{dir}/{strippedCls.ToLowerInvariant()}{suffix.ToLowerInvariant()}{ext.ToLowerInvariant()}";
+                            var fileName = $"{strippedCls.ToLowerInvariant()}{suffix.ToLowerInvariant()}{ext.ToLowerInvariant()}";
+                            // Root entries have no directory: do not make a "/name" path.
+                            var reconstructed = dir.Length > 0 ? $"{dir}/{fileName}" : fileName;
                             if (!usedPaths.Contains(reconstructed))
                             {
                                 Console.WriteLine($"  -> Class match: {file.FileName}  =>  {reconstructed}");

@@ -206,10 +206,13 @@ namespace BIS.PBO
                 recovered = recovered.Replace("\\\\", "\\").Replace(" \\", "\\").Replace("\\ ", "\\");
             } while (oldRecovered != recovered);
 
-            // Trim leading/trailing slashes, spaces, and stray dots
-            recovered = recovered.Trim(' ', '\\', '.');
+            // Trim leading/trailing slashes and spaces, and trailing stray dots.
+            // Keep a leading dot: an obfuscated root entry such as "<junk>.p3d"
+            // sanitizes to ".p3d". Trimming that dot gives "p3d", which loses
+            // the extension and hides the entry from the deobfuscation profiles.
+            recovered = recovered.Trim(' ', '\\').TrimEnd('.', ' ', '\\');
 
-            if (string.IsNullOrWhiteSpace(recovered))
+            if (string.IsNullOrWhiteSpace(recovered) || recovered.Trim('.').Length == 0)
             {
                 return $"_unknown\\_unknown_file{unknownCounter++}";
             }
@@ -256,10 +259,12 @@ namespace BIS.PBO
         [Obsolete]
         public void ExtractFiles(IEnumerable<FileEntry> entries, string dst, bool keepStreamOpen = false)
         {
+            var names = new UniqueEntryNames();
             foreach (var entry in entries.OrderBy(e => e.StartOffset))
             {
                 if (entry.DataSize <= 0) continue;
-                string path = Path.Combine(dst, entry.FileName.Replace('\\', Path.DirectorySeparatorChar));
+                string unique = names.Allocate(entry.FileName);
+                string path = Path.Combine(dst, unique.Replace('\\', Path.DirectorySeparatorChar));
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
                 File.WriteAllBytes(path, GetFileData(entry));
             }
@@ -275,9 +280,11 @@ namespace BIS.PBO
         {
             try
             {
+                var names = new UniqueEntryNames();
                 foreach (var entry in entries)
                 {
-                    var path = Path.Combine(target, entry.FileName.Replace('\\', Path.DirectorySeparatorChar));
+                    var unique = names.Allocate(entry.FileName);
+                    var path = Path.Combine(target, unique.Replace('\\', Path.DirectorySeparatorChar));
 
                     Directory.CreateDirectory(Path.GetDirectoryName(path));
 

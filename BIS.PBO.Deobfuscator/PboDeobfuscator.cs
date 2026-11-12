@@ -141,6 +141,7 @@ namespace BIS.PBO.Deobfuscator
 
             var keep = new List<(int Index, FileEntry Entry)>();
             var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var uniqueNames = new UniqueEntryNames();
             var dirCounters = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             int zeroBytesSkipped = 0;
 
@@ -239,6 +240,8 @@ namespace BIS.PBO.Deobfuscator
                     }
                 }
 
+                // Make sure no two entries share a path in the rebuilt PBO.
+                finalName = uniqueNames.Allocate(finalName);
                 usedNames.Add(finalName);
                 var pboName = finalName.Replace('\\', '/');
                 keep.Add((i, new FileEntry
