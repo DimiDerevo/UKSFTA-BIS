@@ -81,7 +81,7 @@ var root = new RootCommand("BIS file format CLI tool")
         new Command("extract", "Extract PBO contents")
         {
             new Argument<FileInfo>("path", "Path to .pbo file").ExistingOnly(),
-            new Option<DirectoryInfo?>(["--output-dir", "-o"], "Output directory"),
+            new Option<DirectoryInfo?>(["--output-dir", "-o"], "Output directory (default: a folder with the PBO name, next to the PBO file)"),
             new Option<bool>(["--raw", "-r"], "Extract with original (un-deobfuscated) filenames"),
             new Option<bool>(["--match-textures", "-m"], "After extraction, match orphan .paa files against known textures by pixel content"),
             new Option<bool>(["--fuzzy-match", "-fm"], () => true, "After extraction and exact-match, match orphan .paa files against known textures by structural similarity (same layout, different colors) [default: on]"),
@@ -1160,7 +1160,12 @@ static void HandlePBOList(string path, bool raw)
 
 static void HandlePBOExtract(string path, DirectoryInfo? outputDir, bool raw, bool matchTextures, bool exportBlender, bool fuzzyMatch, FileInfo? retxFile = null, FileInfo? modelCfg = null)
 {
-    var outDir = outputDir?.FullName ?? Path.GetFileNameWithoutExtension(path);
+    // Default: a folder next to the PBO with the same name (E:\mods\x.pbo -> E:\mods\x),
+    // not a folder in the current working directory.
+    var fullPath = Path.GetFullPath(path);
+    var outDir = outputDir?.FullName ?? Path.Combine(
+        Path.GetDirectoryName(fullPath) ?? ".",
+        Path.GetFileNameWithoutExtension(fullPath));
     var pbo = new BIS.PBO.PBO(path);
 
     Terminal.Card("pbo extract", t =>
